@@ -13,6 +13,8 @@ namespace AppRpgEtec.ViewModels.Usuarios
     public class UsuarioViewModel : BaseViewModel
     {
         private UsuarioService _uService;
+        private CancellationTokenSource _cancelTokenSource;
+        private bool _isCheckingLocation;
         public ICommand AutenticarCommand { get; set; }
         public ICommand RegistrarCommand { get; set; }
         public ICommand DirecionarCadastroCommand { get; set; }
@@ -54,6 +56,8 @@ namespace AppRpgEtec.ViewModels.Usuarios
         }
         #endregion
 
+        
+
         #region Metodos
                
         public async Task AutenticarUsuario()
@@ -68,6 +72,21 @@ namespace AppRpgEtec.ViewModels.Usuarios
                 //if (!string.IsNullOrEmpty(uAutenticado.Token))
                 if (uAutenticado.Id != 0)
                 {
+                    _isCheckingLocation = true;
+                    _cancelTokenSource = new CancellationTokenSource();
+                    GeolocationRequest request = new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(10));
+
+                    Location location = await Geolocation.Default.GetLocationAsync(request, _cancelTokenSource.Token);
+
+                    Usuario uLoc = new Usuario();
+
+                    uLoc.Id = uAutenticado.Id;
+                    uLoc.Latitude = location.Latitude;
+                    uLoc.Longitude = location.Longitude;
+
+                    UsuarioService uServiceLoc = new UsuarioService(uAutenticado.Token);
+                    await uServiceLoc.PutAtualizarLocalizacaoAsync(uLoc);
+
                     string mensagem = $"Bem vindo {u.Username}";
                     Preferences.Set("UsuarioToken", uAutenticado.Token);
                     Preferences.Set("UsuarioId", uAutenticado.Id);
