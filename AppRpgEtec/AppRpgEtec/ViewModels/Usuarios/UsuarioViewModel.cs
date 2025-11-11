@@ -69,29 +69,27 @@ namespace AppRpgEtec.ViewModels.Usuarios
                 u.PasswordString = Senha;
                 Usuario uAutenticado = await _uService.PostAutenticarUsuarioAsync(u);
 
-                //if (!string.IsNullOrEmpty(uAutenticado.Token))
-                if (uAutenticado.Id != 0)
+                if (!string.IsNullOrEmpty(uAutenticado.Token))
                 {
-                    _isCheckingLocation = true;
-                    _cancelTokenSource = new CancellationTokenSource();
-                    GeolocationRequest request = new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(10));
-
-                    Location location = await Geolocation.Default.GetLocationAsync(request, _cancelTokenSource.Token);
-
-                    Usuario uLoc = new Usuario();
-
-                    uLoc.Id = uAutenticado.Id;
-                    uLoc.Latitude = location.Latitude;
-                    uLoc.Longitude = location.Longitude;
-
-                    UsuarioService uServiceLoc = new UsuarioService(uAutenticado.Token);
-                    await uServiceLoc.PutAtualizarLocalizacaoAsync(uLoc);
-
                     string mensagem = $"Bem vindo {u.Username}";
                     Preferences.Set("UsuarioToken", uAutenticado.Token);
                     Preferences.Set("UsuarioId", uAutenticado.Id);
                     Preferences.Set("UsuarioUsername", uAutenticado.Username);
                     Preferences.Set("UsuarioPerfil", uAutenticado.Perfil);
+
+                    //Início da coleta de Geolocalização atual para atualização da API
+                    _isCheckingLocation = true;
+                    _cancelTokenSource = new CancellationTokenSource();
+                    GeolocationRequest request =
+                        new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(10));
+
+                    Location location = await Geolocation
+                        .Default.GetLocationAsync(request, _cancelTokenSource.Token);
+
+                    Usuario uLoc = new Usuario();
+                    uLoc.Id = uAutenticado.Id;
+                    uLoc.Latitude = location.Latitude;
+                    uLoc.Longitude = location.Longitude;
 
                     await Application.Current.MainPage
                         .DisplayAlert("Informação", mensagem, "Ok");
@@ -150,10 +148,6 @@ namespace AppRpgEtec.ViewModels.Usuarios
                     .DisplayAlert("Informação", ex.Message + " Detalhes: " + ex.InnerException, "Ok");
             }
         }
-
-        //android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round"
-
-
 
         #endregion
 
