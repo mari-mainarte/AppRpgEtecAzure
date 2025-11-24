@@ -1,5 +1,4 @@
-﻿using Android.Gms.Common.Apis;
-using AppRpgEtec.Models;
+﻿using AppRpgEtec.Models;
 using AppRpgEtec.Services.Personagens;
 using System;
 using System.Collections.Generic;
@@ -24,9 +23,12 @@ namespace AppRpgEtec.ViewModels.Personagens
             _ = ObterPersonagens();
             NovoPersonagemCommand = new Command(async () => { await ExibirCadastroPersonagem(); });
             RemoverPersonagemCommand = new Command<Personagem>(async (Personagem p) => { await RemoverPersonagem(p); });
+            ZerarRankingRestaurarVidasGeralCommand = new Command(async () => { await ZerarRankingRestaurarVidasGeral(); });
         }
         public ICommand NovoPersonagemCommand { get; }
         public ICommand RemoverPersonagemCommand { get; }
+        public ICommand ZerarRankingRestaurarVidasGeralCommand { get; set; }
+
         public async Task ObterPersonagens()
         {
             try //Junto com o Cacth evitará que erros fechem o aplicativo
@@ -162,13 +164,23 @@ namespace AppRpgEtec.ViewModels.Personagens
                 personagemSelecionado = null;
                 string result = string.Empty;
 
-                result = await Application.Current.MainPage
+                if(personagem.PontosVida > 0)
+                {
+                    result = await Application.Current.MainPage
                     .DisplayActionSheet("Opções para o personagem: " + personagem.Nome,
                     "Cancelar",
                     "Editar Personagem",
                     "Restaurar Pontos de Vida",
                     "Zerar Ranking do Personagem",
                     "Remover Personagem");
+                }
+                else
+                {
+                    result = await Application.Current.MainPage
+                        .DisplayActionSheet("Opções para o personagem " + personagem.Nome,
+                        "Cancelar",
+                        "Restaurar Pontos de Vida");
+                }
 
                 if (result != null)
                     ProcessarOpcaoRespondidaAsync(personagem, result);
@@ -180,5 +192,24 @@ namespace AppRpgEtec.ViewModels.Personagens
             }
         }
 
+        public async Task ZerarRankingRestaurarVidasGeral()
+        {
+            try
+            {
+                if (await Application.Current.MainPage.DisplayAlert("Confirmação", $"Deseja realmente zerar todo o ranking?", "Yes", "No"))
+                {
+                    await ExecutarZerarRankingRestaurarVidasGeral();
+
+                    await Application.Current.MainPage
+                        .DisplayAlert("Informação", "Ranking zerado com sucesso.", "Ok");
+
+                    await ObterPersonagens();
+                }
+            }
+            catch (Exception ex) {
+                await Application.Current.MainPage
+                    .DisplayAlert("Ops...", ex.Message + " Detalhes: " + ex.InnerException, "Ok");
+            }
+        }
     }
 }
