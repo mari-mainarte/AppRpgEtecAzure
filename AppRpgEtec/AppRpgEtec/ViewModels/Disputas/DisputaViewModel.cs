@@ -46,24 +46,18 @@ namespace AppRpgEtec.ViewModels.Disputas
 
             DisputaComArmaCommand =
                 new Command(async () => { await ExecutarDisputaArmada(); });
+
+            DisputaComHabilidadeCommand =
+                new Command(async () => { await ExecutarDisputaHabilidades(); });
+
+            DisputaGeralCommand =
+                new Command(async () => { await ExecutarDisoutaGeral(); });
         }
 
         public ICommand PesquisarPersonagensCommand { get; set; }
         public ICommand DisputaComArmaCommand { get; set; }
-
-        public async Task PesquisarPersonagens(string textoPesquisaPersonagem)
-        {
-            try
-            {
-                PersonagensEncontrados = await pService.GetByNomeAproximadoAsync(textoPesquisaPersonagem);
-                OnPropertyChanged(nameof(PersonagensEncontrados));
-            }
-            catch (Exception ex)
-            {
-                await Application.Current.MainPage
-                    .DisplayAlert("Ops", ex.Message + " Detalhes: " + ex.InnerException, "Ok");
-            }
-        }
+        public ICommand DisputaComHabilidadeCommand { get; set; }
+        public ICommand DisputaGeralCommand { get; set; }
 
         public string DescricaoPersonagemAtacante
         {
@@ -73,32 +67,6 @@ namespace AppRpgEtec.ViewModels.Disputas
         public string DescricaoPersonagemOponente
         {
             get => Oponente.Nome;
-        }
-
-        public async void SelecionarPersonagem(Personagem p)
-        {
-            try
-            {
-                string tipoCombatente = await Application.Current.MainPage
-                    .DisplayActionSheet("Atacante ou Oponente?", "Cancelar", "", "Atacante", "Oponente");
-
-                if (tipoCombatente == "Atacante")
-                {
-                    await this.ObterHabilidadesAsync(p.Id);
-                    Atacante = p;
-                    OnPropertyChanged(nameof(DescricaoPersonagemAtacante));
-                }
-                else if (tipoCombatente == "Oponente")
-                {
-                    Oponente = p;
-                    OnPropertyChanged(nameof(DescricaoPersonagemOponente));
-                }
-            }
-            catch (Exception ex)
-            {
-                await Application.Current.MainPage
-                        .DisplayAlert("Ops", ex.Message + " Detalhes: " + ex.InnerException, "Ok");
-            }
         }
 
         private Personagem personagemSelecionado;
@@ -130,7 +98,7 @@ namespace AppRpgEtec.ViewModels.Disputas
                     _ = PesquisarPersonagens(textoBuscaDigitado);
                 }
                 else
-                { 
+                {
                     PersonagensEncontrados.Clear();
                 }
             }
@@ -156,6 +124,46 @@ namespace AppRpgEtec.ViewModels.Disputas
                         Application.Current.MainPage.DisplayAlert("Ops", ex.Message, "Ok");
                     }
                 }
+            }
+        }
+
+        public async Task PesquisarPersonagens(string textoPesquisaPersonagem)
+        {
+            try
+            {
+                PersonagensEncontrados = await pService.GetByNomeAproximadoAsync(textoPesquisaPersonagem);
+                OnPropertyChanged(nameof(PersonagensEncontrados));
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage
+                    .DisplayAlert("Ops", ex.Message + " Detalhes: " + ex.InnerException, "Ok");
+            }
+        }
+
+        public async void SelecionarPersonagem(Personagem p)
+        {
+            try
+            {
+                string tipoCombatente = await Application.Current.MainPage
+                    .DisplayActionSheet("Atacante ou Oponente?", "Cancelar", "", "Atacante", "Oponente");
+
+                if (tipoCombatente == "Atacante")
+                {
+                    await this.ObterHabilidadesAsync(p.Id);
+                    Atacante = p;
+                    OnPropertyChanged(nameof(DescricaoPersonagemAtacante));
+                }
+                else if (tipoCombatente == "Oponente")
+                {
+                    Oponente = p;
+                    OnPropertyChanged(nameof(DescricaoPersonagemOponente));
+                }
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage
+                        .DisplayAlert("Ops", ex.Message + " Detalhes: " + ex.InnerException, "Ok");
             }
         }
 
@@ -190,5 +198,44 @@ namespace AppRpgEtec.ViewModels.Disputas
                     .DisplayAlert("Ops", ex.Message + " Detalhes: " + ex.InnerException, "Ok");
             }
         }   
+
+        public async Task ExecutarDisputaHabilidades()
+        {
+            try
+            {
+                DisputaPersonagens.AtacanteId = Atacante.Id;
+                DisputaPersonagens.OponenteId = Oponente.Id;
+                DisputaPersonagens.HabilidadeId = habilidadeSelecionada.HabilidadeId;
+                DisputaPersonagens = await dService.PostDisputaComHabilidadesAsync(DisputaPersonagens);
+
+                await Application.Current.MainPage
+                    .DisplayAlert("Resultado", DisputaPersonagens.Narracao, "Ok");
+            }
+            catch (Exception ex) {
+                await Application.Current.MainPage
+                    .DisplayAlert("Ops", ex.Message + " Detalhes: " + ex.InnerException, "Ok");
+            }
+        }
+
+        private async Task ExecutarDisoutaGeral()
+        {
+            try
+            {
+                ObservableCollection<Personagem> lista = await pService.GetPersonagensAsync();
+                DisputaPersonagens.ListaIdPersonagens = lista.Select(x => x.Id).ToList();
+
+                DisputaPersonagens = await dService.PostDisputaGeralAsync(DisputaPersonagens);
+
+                string resultados = string.Join(" | ", DisputaPersonagens.Resultados);
+
+                await Application.Current.MainPage
+                    .DisplayAlert("Resultado", resultados, "Ok");
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage
+                    .DisplayAlert("Ops", ex.Message + " Detalhes: " + ex.InnerException, "Ok");
+            }
+        }
     }
 }

@@ -26,7 +26,7 @@ namespace AppRpgEtec.Services.Disputas
             return await _request.PostAsync(_apiUrlBase + urlComplementar, d, _token);
         }
 
-        public async Task<Disputa> PostDisputaComHabilidadeAsync(Disputa d)
+        public async Task<Disputa> PostDisputaComHabilidadesAsync(Disputa d)
         {
             string urlComplementar = "/Habilidade";
             return await _request.PostAsync(_apiUrlBase + urlComplementar, d, _token);
